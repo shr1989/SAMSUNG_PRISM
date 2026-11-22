@@ -9,3 +9,4 @@ data/keypoints/
 data/processed/
 models/checkpoints/
 models/exported/
+submission/
