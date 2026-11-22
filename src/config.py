@@ -20,10 +20,18 @@ PROCESSED_DIR = DATA_DIR / "processed"
 MANIFEST_CSV = PROCESSED_DIR / "manifest.csv"
 REDUCED_MANIFEST_CSV = PROCESSED_DIR / "reduced_manifest.csv"
 REDUCED_EXCLUDED_CSV = PROCESSED_DIR / "excluded_samples.csv"
-TRAINING_SUBSET = os.environ.get("ECHOGESTURE_SUBSET", "full")
-if TRAINING_SUBSET not in ("full", "reduced"):
-    raise ValueError(f"ECHOGESTURE_SUBSET must be 'full' or 'reduced', got {TRAINING_SUBSET!r}")
-TRAINING_MANIFEST_CSV = MANIFEST_CSV if TRAINING_SUBSET == "full" else REDUCED_MANIFEST_CSV
+# Final dataset: 10,000 videos (3 train / 1 val / 1 test per class) drawn from the reduced subset.
+FINAL_MANIFEST_CSV = PROCESSED_DIR / "final_manifest.csv"
+FINAL_EXCLUDED_CSV = PROCESSED_DIR / "final_excluded_samples.csv"
+SUBSET_MANIFESTS = {
+    "final": FINAL_MANIFEST_CSV,
+    "reduced": REDUCED_MANIFEST_CSV,
+    "full": MANIFEST_CSV,
+}
+TRAINING_SUBSET = os.environ.get("ECHOGESTURE_SUBSET", "final")
+if TRAINING_SUBSET not in SUBSET_MANIFESTS:
+    raise ValueError(f"ECHOGESTURE_SUBSET must be one of {sorted(SUBSET_MANIFESTS)}")
+TRAINING_MANIFEST_CSV = SUBSET_MANIFESTS[TRAINING_SUBSET]
 
 MODEL_DIR = WORK_DIR / "models"
 CHECKPOINT_DIR = MODEL_DIR / "checkpoints"

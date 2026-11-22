@@ -80,3 +80,33 @@ def test_manifest_integrity():
         assert not set(manifest[manifest["split"] == split]["video_id"]) & set(
             manifest[manifest["split"] == "train"]["video_id"]
         )
+
+
+def test_select_final_takes_first_ranks_per_split():
+    from src.select_subset import select_final
+
+    reduced = pd.DataFrame(
+        {
+            "priority": range(8),
+            "video_id": [str(i) for i in range(8)],
+            "split": ["train"] * 4 + ["val"] * 2 + ["test"] * 2,
+            "label": [0] * 8,
+            "class_rank": [0, 1, 2, 3, 0, 1, 0, 1],
+        }
+    )
+    final = select_final(reduced, {"train": 3, "val": 1, "test": 1})
+    assert final["video_id"].tolist() == ["0", "1", "2", "4", "6"]
+
+
+@pytest.mark.skipif(not config.FINAL_MANIFEST_CSV.exists(), reason="final manifest not generated")
+def test_final_manifest_integrity():
+    final = pd.read_csv(config.FINAL_MANIFEST_CSV, dtype={"video_id": str})
+    full = pd.read_csv(config.MANIFEST_CSV, dtype={"video_id": str}).set_index("video_id")
+    assert len(final) == 10_000 and final["video_id"].is_unique
+    counts = final.groupby(["split", "label"]).size().unstack(0)
+    assert counts.shape == (config.NUM_CLASSES, 3)
+    assert (
+        (counts["train"] == 3).all() and (counts["val"] == 1).all() and (counts["test"] == 1).all()
+    )
+    assert (full.loc[final["video_id"], "split"].to_numpy() == final["split"].to_numpy()).all()
+    assert (full.loc[final["video_id"], "label"].to_numpy() == final["label"].to_numpy()).all()

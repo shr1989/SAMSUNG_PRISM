@@ -24,7 +24,8 @@ Run everything from the project root with `.venv/bin/python` (Python 3.11).
 - Extraction uses every 2nd frame (12.5 fps, `FRAME_STRIDE=2`). The full-frame Phase 2 arrays in `data/keypoints/*.npy` are kept but unused.
 - Model input: `(B, 64, 75, 3)`. Shoulder-centred, shoulder-width-scaled, short gaps interpolated, legs dropped, missing = exactly 0. The 576 features (225 body + 126 upright handshape + 225 velocity) and the train-fitted standardisation are inside the model and the ONNX graph.
 - `src/model_experimental.py` (32-frame, 314-feature CNN and CNN-GRU) is a local experiment only; it is excluded from the Kaggle package.
-- Training defaults to the full 21,095-video manifest (`ECHOGESTURE_SUBSET=full`); the 12,069-video reduced manifest is opt-in.
+- Final dataset: `data/processed/final_manifest.csv`, 10,000 videos = 3 train / 1 val / 1 test per class for all 2,000 classes (official splits), derived deterministically from the reduced manifest with `python -m src.select_subset --final`. Training uses it by default (`ECHOGESTURE_SUBSET=final`). Do not regenerate the reduced manifest (`select_subset` without `--final`).
+- Runs are local only (MacBook M4, MPS/CPU). No Kaggle, CUDA, TPU or cloud training.
 - After editing any module, rerun `python kaggle/build_kaggle.py` so the notebook and package stay identical to `src/`.
 - `src/preprocess.py::preprocess` is the single transform for training and inference.
 

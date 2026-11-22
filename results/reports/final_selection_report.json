@@ -1,0 +1,52 @@
+{
+  "strategy": {
+    "source": "reduced_manifest.csv",
+    "per_class": {
+      "train": 3,
+      "val": 1,
+      "test": 1
+    },
+    "method": "first k clips per split and class by the reduced manifest's class_rank (signer round-robin, seed 42); official splits unchanged"
+  },
+  "train": {
+    "original": 14296,
+    "selected": 6000,
+    "classes": 2000,
+    "per_class_min": 3,
+    "per_class_median": 3.0,
+    "per_class_max": 3,
+    "signers_original": 118,
+    "signers_selected": 113
+  },
+  "val": {
+    "original": 3920,
+    "selected": 2000,
+    "classes": 2000,
+    "per_class_min": 1,
+    "per_class_median": 1.0,
+    "per_class_max": 1,
+    "signers_original": 110,
+    "signers_selected": 105
+  },
+  "test": {
+    "original": 2879,
+    "selected": 2000,
+    "classes": 2000,
+    "per_class_min": 1,
+    "per_class_median": 1.0,
+    "per_class_max": 1,
+    "signers_original": 106,
+    "signers_selected": 100
+  },
+  "total_selected": 10000,
+  "classes_below_minimum": [],
+  "excluded_reasons": {
+    "not_selected_subset_reduction": 9026,
+    "over_final_per_class_quota": 2069
+  },
+  "excluded_by_split": {
+    "test": 879,
+    "train": 8296,
+    "val": 1920
+  }
+}
