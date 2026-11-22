@@ -27,15 +27,6 @@ def load_checkpoint(path: Path, device: torch.device) -> torch.nn.Module:
     return model.eval()
 
 
-def full_metrics(logits: torch.Tensor, labels: torch.Tensor) -> dict:
-    metrics = classification_metrics(logits, labels)
-    y_true, y_pred = labels.cpu().numpy(), logits.argmax(1).numpy()
-    precision, recall, _, _ = precision_recall_fscore_support(
-        y_true, y_pred, labels=np.unique(y_true), average="macro", zero_division=0
-    )
-    return metrics | {"macro_precision": float(precision), "macro_recall": float(recall)}
-
-
 def per_class_table(logits: torch.Tensor, labels: torch.Tensor, glosses: dict) -> pd.DataFrame:
     y_true, y_pred = labels.cpu().numpy(), logits.argmax(1).numpy()
     classes = np.arange(config.NUM_CLASSES)
@@ -109,7 +100,7 @@ def main() -> None:
         results = {}
         for name, split_data in variants.items():
             logits = predict_logits(model, split_data)
-            results[name] = full_metrics(logits, split_data.labels)
+            results[name] = classification_metrics(logits, split_data.labels)
             rows.append(
                 {"split": split, "variant": name, "samples": len(split_data)} | results[name]
             )

@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import random
+import subprocess
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -11,12 +12,12 @@ import numpy as np
 import pandas as pd
 import psutil
 import torch
-from sklearn.metrics import f1_score
+from sklearn.metrics import precision_recall_fscore_support
 from torch import nn
 
 from src import config
 from src.augment import augment
-from src.dataset import SplitData, batches, check_disjoint, load_split
+from src.dataset import SplitData, batches, load_split
 from src.model import build_model, count_parameters, size_mb
 
 log = logging.getLogger("train")
@@ -116,18 +117,55 @@ def classification_metrics(logits: torch.Tensor, labels: torch.Tensor) -> dict:
     loss = nn.functional.cross_entropy(logits, labels).item()
     top5 = logits.topk(5, dim=1).indices
     pred = top5[:, 0]
+    precision, recall, f1, _ = precision_recall_fscore_support(
+        labels.numpy(),
+        pred.numpy(),
+        labels=np.unique(labels.numpy()),
+        average="macro",
+        zero_division=0,
+    )
     return {
         "loss": loss,
         "top1": (pred == labels).float().mean().item(),
         "top5": (top5 == labels[:, None]).any(1).float().mean().item(),
-        "macro_f1": f1_score(
-            labels.numpy(),
-            pred.numpy(),
-            labels=np.unique(labels.numpy()),
-            average="macro",
-            zero_division=0,
-        ),
+        "macro_precision": float(precision),
+        "macro_recall": float(recall),
+        "macro_f1": float(f1),
     }
+
+
+def check_test_untouched(train: SplitData, val: SplitData) -> None:
+    # Test IDs come from the manifest; the test features are never loaded during training.
+    manifest = pd.read_csv(config.TRAINING_MANIFEST_CSV, dtype={"video_id": str})
+    test_ids = set(manifest.loc[manifest["split"] == "test", "video_id"])
+    train_ids, val_ids = set(train.video_ids.tolist()), set(val.video_ids.tolist())
+    if train_ids & val_ids or (train_ids | val_ids) & test_ids:
+        raise ValueError("train/val/test video IDs overlap")
+
+
+def thermal_state() -> str:
+    try:
+        output = subprocess.run(
+            ["pmset", "-g", "therm"], capture_output=True, text=True, timeout=5
+        ).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return "unavailable"
+    warnings = [
+        line.strip() for line in output.splitlines() if "level" in line and "No " not in line
+    ]
+    return "; ".join(warnings) or "no thermal warning"
+
+
+def system_snapshot(device: torch.device) -> dict:
+    snapshot = {
+        "load_1min": os.getloadavg()[0],
+        "ram_available_gb": psutil.virtual_memory().available / 2**30,
+        "process_rss_mb": psutil.Process().memory_info().rss / 2**20,
+    }
+    if device.type == "mps":
+        snapshot["mps_allocated_mb"] = torch.mps.current_allocated_memory() / 2**20
+        snapshot["mps_driver_mb"] = torch.mps.driver_allocated_memory() / 2**20
+    return snapshot
 
 
 def save_atomic(state: dict, path: Path) -> None:
@@ -149,7 +187,7 @@ def train(cfg: TrainConfig, run_dir: Path, resume: bool) -> dict:
     seed_everything(cfg.seed)
     device = select_device()
     train_data, val_data = load_split("train"), load_split("val")
-    check_disjoint(train_data, val_data, load_split("test"))
+    check_test_untouched(train_data, val_data)
     train_data, val_data = train_data.to(device), val_data.to(device)
 
     model = build_model(cfg.arch).to(device)
@@ -225,6 +263,7 @@ def train(cfg: TrainConfig, run_dir: Path, resume: bool) -> dict:
             "epoch_seconds": time.perf_counter() - epoch_began,
         }
         row |= {f"val_{k}": v for k, v in val.items()}
+        row |= system_snapshot(device)
         history.append(row)
         if val["macro_f1"] > best_f1:
             best_f1, best_epoch = val["macro_f1"], epoch
@@ -239,15 +278,22 @@ def train(cfg: TrainConfig, run_dir: Path, resume: bool) -> dict:
                 best_path,
             )
         log.info(
-            "epoch %3d loss %.3f val_loss %.3f top1 %.4f top5 %.4f f1 %.4f %.1fs",
+            "epoch %3d loss %.3f val_loss %.3f top1 %.4f top5 %.4f P %.4f R %.4f F1 %.4f "
+            "%.1fs | mps %.0f MB | load %.1f",
             epoch,
             row["train_loss"],
             val["loss"],
             val["top1"],
             val["top5"],
+            val["macro_precision"],
+            val["macro_recall"],
             val["macro_f1"],
             row["epoch_seconds"],
+            row.get("mps_driver_mb", 0.0),
+            row["load_1min"],
         )
+        if epoch % 10 == 0:
+            log.info("thermal: %s", thermal_state())
         save_atomic(
             {
                 "model": model.state_dict(),
@@ -305,7 +351,7 @@ def plot_history(history_csv: Path, out: Path) -> None:
     axes[0].plot(history["epoch"], history["train_loss"], label="train (augmented)")
     axes[0].plot(history["epoch"], history["val_loss"], label="val")
     axes[0].set_title("Loss")
-    for key in ("val_top1", "val_top5", "val_macro_f1"):
+    for key in ("val_top1", "val_top5", "val_macro_precision", "val_macro_recall", "val_macro_f1"):
         axes[1].plot(history["epoch"], history[key], label=key.removeprefix("val_"))
     axes[1].set_title("Validation")
     for ax in axes:
