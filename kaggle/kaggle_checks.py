@@ -9,13 +9,9 @@ import numpy as np
 import pandas as pd
 
 from src import config
+from src.validate_keypoints import GROUPS, array_problems, expected_frames, ordering_summary
 
 REFERENCE = Path(__file__).with_name("reference.json")
-GROUPS = {
-    "pose": slice(0, config.NUM_POSE),
-    "left_hand": config.LEFT_HAND_SLICE,
-    "right_hand": config.RIGHT_HAND_SLICE,
-}
 
 
 def split_hash(path: Path) -> dict:
@@ -78,32 +74,17 @@ def check_parity(rate_tolerance: float, xy_tolerance: float) -> bool:
     return ok
 
 
-def wrist_distances(keypoints: np.ndarray, hand_wrist: int, pose_wrist: int) -> np.ndarray:
-    both = ~np.isnan(keypoints[:, hand_wrist, 0]) & ~np.isnan(keypoints[:, pose_wrist, 0])
-    return np.linalg.norm(
-        keypoints[both, hand_wrist, :2] - keypoints[both, pose_wrist, :2], axis=-1
-    )
-
-
 def check_ordering(arrays: list[np.ndarray]) -> bool:
-    # Each hand's wrist must sit nearer the same-side pose wrist than the opposite one.
-    left_wrist, right_wrist = config.LEFT_HAND_SLICE.start, config.RIGHT_HAND_SLICE.start
-    pairs = {
-        "left hand": (left_wrist, config.LEFT_WRIST, config.RIGHT_WRIST),
-        "right hand": (right_wrist, config.RIGHT_WRIST, config.LEFT_WRIST),
-    }
     ok = True
-    for name, (hand, same, other) in pairs.items():
-        same_d = np.concatenate([wrist_distances(k, hand, same) for k in arrays])
-        other_d = np.concatenate([wrist_distances(k, hand, other) for k in arrays])
-        if not len(same_d):
+    for name, result in ordering_summary(arrays).items():
+        if not result.get("median_same_side"):
             print(f"  {name}: not detected in sample, ordering not testable")
             continue
-        correct = float(np.median(same_d)) < float(np.median(other_d))
-        ok &= correct
+        ok &= result["ordering_ok"]
         print(
-            f"  {name}: median distance to same-side pose wrist {np.median(same_d):.3f}, "
-            f"opposite {np.median(other_d):.3f} -> {'ordering ok' if correct else 'SWAPPED'}"
+            f"  {name}: median distance to same-side pose wrist {result['median_same_side']:.3f}, "
+            f"opposite {result['median_opposite_side']:.3f} -> "
+            f"{'ordering ok' if result['ordering_ok'] else 'SWAPPED'}"
         )
     return ok
 
@@ -116,20 +97,10 @@ def check_samples(directory: Path) -> bool:
     missing_hand_frames = 0
     for path, keypoints in zip(files, arrays, strict=True):
         row = manifest.loc[path.stem]
-        expected = len(range(row.clip_start, row.clip_end, config.FRAME_STRIDE))
-        if keypoints.dtype != np.float32 or keypoints.shape[1:] != (
-            config.NUM_LANDMARKS,
-            config.COORDS,
-        ):
-            problems.append(f"{path.stem}: bad shape/dtype {keypoints.shape} {keypoints.dtype}")
-        elif not 0 < len(keypoints) <= expected:
-            problems.append(f"{path.stem}: {len(keypoints)} frames, expected {expected}")
-        for group, part in GROUPS.items():
-            nan = np.isnan(keypoints[:, part])
-            if not (nan.all(axis=(1, 2)) | ~nan.any(axis=(1, 2))).all():
-                problems.append(f"{path.stem}: partial NaN in {group}")
-            if group != "pose":
-                missing_hand_frames += int(nan.all(axis=(1, 2)).sum())
+        expected = expected_frames(row.clip_start, row.clip_end)
+        problems += [f"{path.stem}: {p}" for p in array_problems(keypoints, expected, None)]
+        hands = np.isnan(keypoints[:, config.NUM_POSE :, 0]).reshape(len(keypoints), 2, -1)
+        missing_hand_frames += int(hands.all(axis=-1).sum())
     frames = sum(len(k) for k in arrays)
     print(f"{len(files)} arrays, {frames} frames, per-frame shape (75, 3), float32 verified")
     print(f"missing-hand frames stored as all-NaN groups: {missing_hand_frames}")
