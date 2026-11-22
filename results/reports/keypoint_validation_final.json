@@ -1,0 +1,44 @@
+{
+  "manifest_videos": 10000,
+  "counts": {
+    "completed": 10000,
+    "pending": 0,
+    "failed": 0,
+    "corrupted": 0
+  },
+  "counts_by_split": {
+    "test": {
+      "completed": 2000
+    },
+    "train": {
+      "completed": 6000
+    },
+    "val": {
+      "completed": 2000
+    }
+  },
+  "classes_with_completed_video": {
+    "train": 2000,
+    "val": 2000,
+    "test": 2000
+  },
+  "arrays_without_ok_status": 4,
+  "temp_files": 0,
+  "frames_in_completed_arrays": 306567,
+  "missing_hand_slots_fraction": 0.48044473149425737,
+  "landmark_ordering": {
+    "left_hand": {
+      "median_same_side": 0.020010339096188545,
+      "median_opposite_side": 0.25326454639434814,
+      "ordering_ok": true
+    },
+    "right_hand": {
+      "median_same_side": 0.019146926701068878,
+      "median_opposite_side": 0.3201930820941925,
+      "ordering_ok": true
+    }
+  },
+  "frame_stride": 2,
+  "keypoint_dir": "/Users/shraddhasidhan/hack/EchoGesture/data/keypoints/stride2",
+  "manifest": "final_manifest.csv"
+}
