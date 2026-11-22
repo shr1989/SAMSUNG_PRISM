@@ -9,7 +9,7 @@ This document records how AI was used to build EchoGesture. The competition's ow
 | **Claude Code** (Anthropic's coding agent, in the Claude desktop app), running the Claude Opus 5.5 model | Writing and editing code, running commands, debugging, analysis, documentation, the presentation and the submission tooling |
 
 - **Other tools:** we have not recorded the use of any other AI coding assistant. *To be confirmed by the team before submission* (for example ChatGPT, GitHub Copilot or Gemini, if any were used outside this workflow).
-- **Commit attribution:** commits made by the agent carry a `Co-Authored-By: Claude` trailer. Some commits in the history were made under a placeholder Git identity (`Your Name`) configured on the development machine.
+- **Commit attribution:** commits are attributed to the repository owner (`shr1989`). Many of them were written with Claude Code as described in this document. At the owner's request, the per-commit `Co-Authored-By: Claude` trailers were removed from the history so that GitHub's contributor list shows the team. This document is the record of AI involvement.
 
 **AI models inside the product (not development assistance):**
 - **MediaPipe Holistic** (Google): a pretrained landmark detector, used unchanged and not trained by us.
