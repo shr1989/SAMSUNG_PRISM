@@ -221,3 +221,20 @@ def test_training_feature_stats_rejects_other_training_set(tmp_path, monkeypatch
     )
     mean, _ = train_module.training_feature_stats(build_model("tcnn"), data)
     assert (mean == 2).all()
+
+
+def test_restore_rng_accepts_states_loaded_onto_training_device(tmp_path):
+    from src.train import restore_rng, select_device
+
+    device = select_device()
+    generator = torch.Generator().manual_seed(7)
+    expected = torch.rand(3, generator=generator)
+    generator.manual_seed(7)
+    torch.save(
+        {"generator": generator.get_state(), "torch_rng": torch.get_rng_state()},
+        tmp_path / "state.pt",
+    )
+    state = torch.load(tmp_path / "state.pt", map_location=device, weights_only=False)
+    restored = torch.Generator()
+    restore_rng(state, restored)
+    assert torch.equal(torch.rand(3, generator=restored), expected)

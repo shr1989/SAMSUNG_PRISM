@@ -68,6 +68,12 @@ def amp_dtype(device: torch.device, mode: str) -> torch.dtype | None:
     return torch.bfloat16 if native_bf16 else torch.float16
 
 
+def restore_rng(state: dict, generator: torch.Generator) -> None:
+    # map_location moves every tensor to the training device; RNG states must stay on CPU.
+    generator.set_state(state["generator"].cpu())
+    torch.set_rng_state(state["torch_rng"].cpu())
+
+
 def seed_everything(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
@@ -217,8 +223,7 @@ def train(cfg: TrainConfig, run_dir: Path, resume: bool) -> dict:
         scaler.load_state_dict(state["scaler"])
         optimizer.load_state_dict(state["optimizer"])
         scheduler.load_state_dict(state["scheduler"])
-        generator.set_state(state["generator"])
-        torch.set_rng_state(state["torch_rng"])
+        restore_rng(state, generator)
         history, best_f1, best_epoch = state["history"], state["best_f1"], state["best_epoch"]
         start_epoch, elapsed = state["epoch"] + 1, state["elapsed"]
         log.info("resumed at epoch %d", start_epoch)
