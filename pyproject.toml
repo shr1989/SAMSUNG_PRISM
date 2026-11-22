@@ -6,10 +6,18 @@ requires-python = ">=3.11,<3.12"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = ["*.pyi"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "N"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 filterwarnings = ["ignore:SymbolDatabase.GetPrototype:UserWarning"]
+
+[tool.ruff.lint.per-file-ignores]
+# Long user-facing UI copy and CSS strings.
+"app.py" = ["E501"]

@@ -56,6 +56,8 @@ COPIES = {
     "results/results.csv": "results/evaluation_metrics.csv",
     "results/plots/training_tcnn.png": "results/plots/training_tcnn.png",
     "hud_demo.py": "src/hud_demo.py",
+    "app.py": "app.py",
+    "pyproject.toml": "pyproject.toml",
 }
 REPORTS = [
     "compliance_report.md",

@@ -9,4 +9,7 @@ data/keypoints/
 data/processed/
 models/checkpoints/
 models/exported/
-submission/
+/submission/*
+!/submission/EchoGesture_Submission.zip
+/build/
+app.pyi

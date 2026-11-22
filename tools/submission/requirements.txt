@@ -1,0 +1,15 @@
+# Python 3.11. Inference (main.py / predict):
+numpy==1.26.4
+mediapipe==0.10.14
+opencv-python==4.10.0.84
+onnxruntime==1.32.0
+pandas==3.0.6
+psutil==7.2.2
+tqdm==4.70.1
+# Browser demo (app.py):
+gradio==6.32.0
+# Reproduction (training, evaluation, ONNX export and INT8 conversion):
+torch==2.15.0
+onnx==1.22.0
+scikit-learn==1.9.1
+matplotlib==3.11.2

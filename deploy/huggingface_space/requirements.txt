@@ -1,0 +1,8 @@
+# Gradio itself is installed by the Space from sdk_version in README.md.
+numpy==1.26.4
+mediapipe==0.10.14
+opencv-python==4.10.0.84
+onnxruntime==1.32.0
+pandas==3.0.6
+psutil==7.2.2
+tqdm==4.70.1
