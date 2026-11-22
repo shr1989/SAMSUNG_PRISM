@@ -94,6 +94,7 @@ POSE_MIRROR_PAIRS = (
     (31, 32),
 )
 PREPROCESS_CONFIG_JSON = PROCESSED_DIR / "preprocess_config.json"
+FEATURE_STATS_NPZ = PROCESSED_DIR / "feature_stats.npz"
 
 
 def ensure_dirs() -> None:

@@ -89,6 +89,22 @@ def feature_stats(
     return mean.float(), std.float()
 
 
+def training_feature_stats(model: nn.Module, train: SplitData) -> tuple[torch.Tensor, torch.Tensor]:
+    from src.preprocess import ids_fingerprint
+
+    path = config.FEATURE_STATS_NPZ
+    if path.exists():
+        with np.load(path) as saved:
+            if str(saved["train_ids_sha256"]) != ids_fingerprint(train.video_ids):
+                raise ValueError(
+                    f"{path.name} was fitted on a different training set; rerun preprocess"
+                )
+            log.info("feature statistics loaded from %s", path.name)
+            return torch.from_numpy(saved["mean"]), torch.from_numpy(saved["std"])
+    log.info("feature statistics computed from the training split")
+    return feature_stats(model, train)
+
+
 @torch.no_grad()
 def predict_logits(model: nn.Module, data: SplitData, batch_size: int = 256) -> torch.Tensor:
     model.eval()
@@ -137,7 +153,7 @@ def train(cfg: TrainConfig, run_dir: Path, resume: bool) -> dict:
     train_data, val_data = train_data.to(device), val_data.to(device)
 
     model = build_model(cfg.arch).to(device)
-    model.set_feature_stats(*[t.to(device) for t in feature_stats(model, train_data)])
+    model.set_feature_stats(*[t.to(device) for t in training_feature_stats(model, train_data)])
     dtype = amp_dtype(device, cfg.amp)
     scaler = torch.amp.GradScaler("cuda", enabled=dtype == torch.float16)
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)

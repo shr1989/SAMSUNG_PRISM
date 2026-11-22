@@ -1,0 +1,72 @@
+{
+  "config": {
+    "num_frames": 64,
+    "max_fill_gap": 4,
+    "clip_value": 6.0,
+    "frame_stride": 2,
+    "dropped_pose_landmarks": [
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32
+    ],
+    "landmark_order": [
+      "pose",
+      "left_hand",
+      "right_hand"
+    ],
+    "manifest": "final_manifest.csv"
+  },
+  "train": {
+    "selected": 6000,
+    "processed": 6000,
+    "missing_or_failed": 0,
+    "classes": 2000,
+    "shape": [
+      6000,
+      64,
+      75,
+      3
+    ],
+    "finite": true
+  },
+  "val": {
+    "selected": 2000,
+    "processed": 2000,
+    "missing_or_failed": 0,
+    "classes": 2000,
+    "shape": [
+      2000,
+      64,
+      75,
+      3
+    ],
+    "finite": true
+  },
+  "test": {
+    "selected": 2000,
+    "processed": 2000,
+    "missing_or_failed": 0,
+    "classes": 2000,
+    "shape": [
+      2000,
+      64,
+      75,
+      3
+    ],
+    "finite": true
+  },
+  "feature_stats": {
+    "file": "feature_stats.npz",
+    "fitted_on": "train split only (6000 clips, unaugmented)",
+    "num_features": 576,
+    "constant_features": 70,
+    "train_ids_sha256": "7252126917dcacb1b7d30e30b650929eb1dd8c3c3200786af0a725aa227234a3"
+  }
+}

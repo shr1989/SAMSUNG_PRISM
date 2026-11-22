@@ -192,3 +192,32 @@ def test_batches_cover_all_and_disjoint_check():
     assert sorted(seen.tolist()) == list(range(10))
     with pytest.raises(ValueError):
         check_disjoint(data, data)
+
+
+def test_training_feature_stats_rejects_other_training_set(tmp_path, monkeypatch):
+    from src import train as train_module
+    from src.preprocess import ids_fingerprint
+
+    data = SplitData(
+        torch.randn(4, config.NUM_FRAMES, *SHAPE), torch.arange(4), np.array(["a", "b", "c", "d"])
+    )
+    path = tmp_path / "stats.npz"
+    monkeypatch.setattr(config, "FEATURE_STATS_NPZ", path)
+    np.savez(
+        path,
+        mean=np.zeros(576, np.float32),
+        std=np.ones(576, np.float32),
+        train_ids_sha256=ids_fingerprint(["x"]),
+        train_clips=1,
+    )
+    with pytest.raises(ValueError, match="different training set"):
+        train_module.training_feature_stats(build_model("tcnn"), data)
+    np.savez(
+        path,
+        mean=np.full(576, 2, np.float32),
+        std=np.ones(576, np.float32),
+        train_ids_sha256=ids_fingerprint(data.video_ids),
+        train_clips=4,
+    )
+    mean, _ = train_module.training_feature_stats(build_model("tcnn"), data)
+    assert (mean == 2).all()

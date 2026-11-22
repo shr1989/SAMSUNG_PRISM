@@ -1,0 +1,24 @@
+{
+  "num_frames": 64,
+  "max_fill_gap": 4,
+  "clip_value": 6.0,
+  "frame_stride": 2,
+  "dropped_pose_landmarks": [
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32
+  ],
+  "landmark_order": [
+    "pose",
+    "left_hand",
+    "right_hand"
+  ],
+  "manifest": "final_manifest.csv"
+}

@@ -1,3 +1,4 @@
+import hashlib
 import json
 import logging
 from dataclasses import asdict, dataclass, field
@@ -24,6 +25,7 @@ class PreprocessConfig:
     frame_stride: int = config.FRAME_STRIDE
     dropped_pose_landmarks: list[int] = field(default_factory=lambda: list(config.DROPPED_POSE))
     landmark_order: list[str] = field(default_factory=lambda: list(config.LANDMARK_ORDER))
+    manifest: str = config.TRAINING_MANIFEST_CSV.name
 
     def save(self, path) -> None:
         path.write_text(json.dumps(asdict(self), indent=2))
@@ -107,6 +109,34 @@ def preprocess(keypoints: np.ndarray, cfg: PreprocessConfig) -> np.ndarray:
     return np.nan_to_num(out, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32)
 
 
+def ids_fingerprint(video_ids) -> str:
+    return hashlib.sha256("\n".join(sorted(map(str, video_ids))).encode()).hexdigest()
+
+
+def fit_feature_stats() -> dict:
+    # Feature standardisation is fitted on the clean (unaugmented) training split only.
+    from src.dataset import load_split as load_processed
+    from src.model import TemporalCNN
+    from src.train import feature_stats
+
+    train = load_processed("train")
+    mean, std = feature_stats(TemporalCNN(), train)
+    np.savez(
+        config.FEATURE_STATS_NPZ,
+        mean=mean.numpy(),
+        std=std.numpy(),
+        train_ids_sha256=ids_fingerprint(train.video_ids),
+        train_clips=len(train),
+    )
+    return {
+        "file": config.FEATURE_STATS_NPZ.name,
+        "fitted_on": f"train split only ({len(train)} clips, unaugmented)",
+        "num_features": int(mean.numel()),
+        "constant_features": int((std < 1e-6).sum()),
+        "train_ids_sha256": ids_fingerprint(train.video_ids),
+    }
+
+
 def load_split(manifest: pd.DataFrame, ok_ids: set[str], split: str) -> tuple[list, pd.DataFrame]:
     rows = manifest[(manifest["split"] == split) & manifest["video_id"].isin(ok_ids)]
     arrays = [np.load(config.KEYPOINT_DIR / f"{vid}.npy") for vid in rows["video_id"]]
@@ -146,6 +176,7 @@ def main() -> None:
             "shape": list(features.shape),
             "finite": bool(np.isfinite(features).all()),
         }
+    report["feature_stats"] = fit_feature_stats()
     (config.REPORT_DIR / "preprocess_report.json").write_text(json.dumps(report, indent=2))
     log.info(json.dumps(report, indent=2))
 
