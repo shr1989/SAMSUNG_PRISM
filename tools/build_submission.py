@@ -58,6 +58,7 @@ COPIES = {
     "hud_demo.py": "src/hud_demo.py",
     "app.py": "app.py",
     "pyproject.toml": "pyproject.toml",
+    "video/EchoGesture_Demo.mp4": "video/EchoGesture_Demo.mp4",
 }
 REPORTS = [
     "compliance_report.md",

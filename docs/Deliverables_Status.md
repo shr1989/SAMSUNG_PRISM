@@ -9,7 +9,7 @@
 | 1 | Submission package | Completed | `submission/EchoGesture_Submission.zip` |
 | 2 | Source code | Completed | repository root, `src/`, `tests/` |
 | 3 | Presentation | Completed | `presentation/EchoGesture_Presentation.pptx` and `.pdf` |
-| 4 | Video / interactive demo | Pending (video); demo app completed locally, not publicly deployed | `docs/Demo_Video_Script.md`, `app.py`, `deploy/huggingface_space/` |
+| 4 | Video / interactive demo | Video completed (see the gaps listed in section 4); demo app completed locally, not publicly deployed | `video/EchoGesture_Demo.mp4`, `app.py`, `deploy/huggingface_space/` |
 | 5 | AI disclosure | Completed (team to confirm item 1 of the document) | `docs/AI_Disclosure.md` |
 | 6 | README | Completed | `README.md` |
 | 7 | APK / SDK | Not applicable | this document, section 7 |
@@ -17,7 +17,7 @@
 
 ## 1. Submission package: Completed
 
-**File:** `submission/EchoGesture_Submission.zip` (8.08 MB, 57 files).
+**File:** `submission/EchoGesture_Submission.zip` (10.99 MB, 58 files, including the demo video).
 
 **Contents:**
 - `main.py` with `predict(video_path)`;
@@ -79,20 +79,23 @@ All figures are read from the result reports and the charts come from the real l
 - imperfect calibration;
 - power as a per-process CPU estimate;
 - the 320 ms confirmation wait is excluded from the 32.2 ms;
-- webcam recording is unverified;
+- webcam recording in the app is verified only by two recordings on Windows in Brave;
 - isolated recognition only.
 
 **Your action:** add team member names on slide 1 (not stored in the project).
 
-## 4. Video / interactive demo: Pending (video); demo app ready locally
+## 4. Video / interactive demo: Video completed; demo app ready locally
 
-**Video: pending.** No video has been recorded. The guide (page 25) asks for a 2–3 minute demo, and nothing found says a live link can replace it. `docs/Demo_Video_Script.md` gives:
-- a timed storyboard;
-- narration;
-- the exact launch commands;
-- macOS recording steps.
+**Video: completed.** `video/EchoGesture_Demo.mp4` (2 min 22 s, 1920 × 1080, H.264, 3.2 MB, silent with on-screen captions), built by `video/make_demo_video.py`. It contains:
+- captioned slides from the presentation (problem, pipeline, model, architecture, results, latency, robustness, scorecard, limitations, conclusion);
+- the two **unedited** webcam screen recordings of the web app (scaled only).
 
-The intended output path is `video/EchoGesture_Demo.mp4`.
+No footage was generated. Gaps against the guide's demo list (page 25):
+- no segment of the live caption HUD with its FPS/latency overlay (the app's timing table is shown instead);
+- no deliberately angled or partly hidden example;
+- no voice-over.
+
+The script in `docs/Demo_Video_Script.md` covers these if you want to re-record.
 
 **Interactive demo app: completed and tested locally.** Run it with `python app.py` (Gradio 6.32.0, FP32 ONNX). It was tested as follows:
 - upload and prediction in a real browser;
@@ -105,7 +108,7 @@ The intended output path is `video/EchoGesture_Demo.mp4`.
 - 25 repeated requests with no memory growth (peak RSS about 525 MB);
 - about 490 MB RSS in the Space build.
 
-**Webcam recording: not verified.** The test browser blocked camera access.
+**Webcam recording: verified in the app.** Two real screen recordings (Windows, Brave browser) show the app recording a sign from the webcam and returning a result: DOUBT (77% model score, 20 sampled frames in 6.3 s) and NICKEL (91%, 19 frames in 6.7 s). Saved as `video/webcam_demo_1.mp4` and `video/webcam_demo_2.mp4` (audio removed). The intended signs were not recorded alongside them, so they are not accuracy evidence. A collapsed "Error (2)" notice from an earlier attempt is visible in one recording; its content is not shown. The live HUD (`hud_demo.py`) is still untested with a camera.
 
 **Public hosting: prepared, not deployed.**
 - `deploy/huggingface_space/` holds the Space README with SDK and Python version, the requirements, `packages.txt` and `DEPLOY.md`.
@@ -114,9 +117,9 @@ The intended output path is `video/EchoGesture_Demo.mp4`.
 - The Linux container itself and Spaces CPU speed are untested.
 
 **Your actions:**
-1. Record the video following the script.
+1. Optionally re-record the video with voice-over, the live HUD and an angled or partly hidden sign (`docs/Demo_Video_Script.md`).
 2. Deploy the Space following `deploy/huggingface_space/DEPLOY.md` (needs your Hugging Face account).
-3. Test webcam recording in your browser.
+3. Optionally test the live HUD (`python hud_demo.py`) with a camera.
 4. Add the public URL to the README and to this file.
 
 ## 5. AI disclosure: Completed (pending one confirmation)

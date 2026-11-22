@@ -1,6 +1,6 @@
 # Demo video: script, storyboard and recording guide
 
-**Status: not recorded.** The final MP4 does not exist yet. It must be recorded by the team, because the build environment had no camera access and no screen-recording permission.
+**Status:** a first version exists: `video/EchoGesture_Demo.mp4` (2:22). It combines two real webcam screen recordings of the web app with captioned slides (`video/make_demo_video.py`). It has no voice-over, no live HUD segment and no angled or partly hidden example. Use this guide to record a fuller version.
 
 ## Can the interactive demo replace the video?
 

@@ -11,7 +11,7 @@ EchoGesture recognises which of **2,000 American Sign Language (ASL) words** is 
 | Submission package | [submission/EchoGesture_Submission.zip](submission/EchoGesture_Submission.zip) |
 | Deliverables checklist | [docs/Deliverables_Status.md](docs/Deliverables_Status.md) |
 | AI disclosure | [docs/AI_Disclosure.md](docs/AI_Disclosure.md) |
-| Demo video | Pending; script and storyboard in [docs/Demo_Video_Script.md](docs/Demo_Video_Script.md) |
+| Demo video | [video/EchoGesture_Demo.mp4](video/EchoGesture_Demo.mp4) (2:22): two real webcam recordings of the app plus captioned slides |
 
 ![EchoGesture web app](docs/images/app_screenshot.png)
 
@@ -131,7 +131,7 @@ python app.py          # opens on http://127.0.0.1:7860
 2. Record a single sign, stop, then press **Recognise sign**.
 3. The recorder is set not to mirror, because the model was trained on unmirrored video.
 
-Webcam recording has **not** been verified by the authors (camera access was blocked in the test environment). Please check it on your machine.
+Webcam recording in the web app was verified in two real screen recordings (Windows, Brave browser): the app recorded a sign from the webcam and returned top-5 predictions (DOUBT 77% and NICKEL 91%); see [video/](video/). The live HUD (`hud_demo.py`) has not been tested with a camera.
 
 **For good landmark detection:**
 - keep your head, shoulders and both hands in view, in even light;
@@ -214,7 +214,7 @@ Full methodology: [results/reports/compliance_report.md](results/reports/complia
 - **Calibration:** confidence scores are imperfectly calibrated (they overstate accuracy).
 - **Power:** 1.42 W is a per-process CPU estimate on a laptop, not total device power, and it misses the 500 mW target.
 - **Unverified:**
-  - webcam recording in the app and the live HUD have not been tested with a real camera;
+  - the live HUD (`hud_demo.py`) has not been tested with a camera (webcam recording in the web app has been, on Windows in Brave);
   - nothing has been measured on a phone.
 - **Scope:** isolated words only. There is no Android or iOS application.
 
@@ -223,7 +223,7 @@ Full methodology: [results/reports/compliance_report.md](results/reports/complia
 - Train on the full official training split (14,296 clips) with class-balanced sampling.
 - Evaluate on held-out signers.
 - Lower MediaPipe power when no one is in view, or use a lighter pose model.
-- Deploy the prepared Hugging Face Space and verify webcam use.
+- Deploy the prepared Hugging Face Space.
 - Package for ONNX Runtime Mobile and measure on a phone.
 
 ## Repository structure
@@ -244,6 +244,7 @@ deploy/huggingface_space/   Space template and deployment guide
 tools/                      submission packaging/verification, Space builder, calibration report
 submission/                 EchoGesture_Submission.zip (final package)
 docs/                       AI disclosure, deliverables status, demo video script, images
+video/                      EchoGesture_Demo.mp4, the two webcam recordings, make_demo_video.py
 kaggle/, EchoGesture_Kaggle.ipynb   earlier Kaggle packaging (not used for the final results)
 ```
 

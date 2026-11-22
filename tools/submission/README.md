@@ -44,7 +44,9 @@ Everything runs offline once the packages are installed, because the MediaPipe m
 python app.py        # then open http://127.0.0.1:7860
 ```
 
-**Upload or record** a video of one sign, then press **Recognise sign**. The app runs the same pipeline as `predict()` (identical top-5 and scores in tests) and shows the word, top-5 scores and a timing breakdown. Webcam recording needs browser camera permission and has not been verified by the authors.
+**Upload or record** a video of one sign, then press **Recognise sign**. The app runs the same pipeline as `predict()` (identical top-5 and scores in tests) and shows the word, top-5 scores and a timing breakdown. Webcam recording needs browser camera permission; it was verified in two real recordings on Windows in the Brave browser.
+
+**Demo video:** `video/EchoGesture_Demo.mp4` (2 min 22 s) shows two real webcam recordings of the app, plus captioned slides.
 
 ## Running inference
 

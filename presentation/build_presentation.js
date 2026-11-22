@@ -416,10 +416,10 @@ async function main() {
   text(s, "Actual run on WLASL test clip 60522 (true word UNDER): the model predicted CRUEL, a miss. Video preview hidden for this codec.", { objectName: "screenshot caption", x: 0.6, y: 6.38, w: 7.4, h: 0.45, fontSize: 11, color: C.accent5 });
   card(s, "verified card", 8.3, 1.45, 4.4, 2.75);
   text(s, "Verified", { objectName: "verified head", x: 8.55, y: 1.55, w: 3.9, h: 0.45, fontSize: 17, bold: true, color: C.accent6 });
-  s.addText(bullets(["Upload and prediction in the browser UI.", "Same top-5 and scores as main.predict(): 12/12 direct, 4/4 over HTTP, 3/3 from a clean Space build.", "Clear errors for empty, wrong-type, too-long or person-free videos."], 12), { objectName: "verified bullets", x: 8.55, y: 2.0, w: 4.0, h: 2.15, valign: "top" });
+  s.addText(bullets(["Upload and prediction in the browser UI.", "Same top-5 and scores as main.predict(): 12/12 direct, 4/4 over HTTP, 3/3 from a clean Space build.", "Webcam recording in the browser (two real recordings, Windows, Brave) and clear errors for bad videos."], 12), { objectName: "verified bullets", x: 8.55, y: 2.0, w: 4.0, h: 2.15, valign: "top" });
   card(s, "pending card", 8.3, 4.35, 4.4, 2.0, "FDF3E1");
   text(s, "Not yet verified", { objectName: "pending head", x: 8.55, y: 4.45, w: 3.9, h: 0.45, fontSize: 17, bold: true, color: C.accent2 });
-  s.addText(bullets(["Webcam recording: camera access was blocked in the test browser.", "Public hosting: Hugging Face Space files are prepared, not deployed."], 12), { objectName: "pending bullets", x: 8.55, y: 4.9, w: 4.0, h: 1.4, valign: "top" });
+  s.addText(bullets(["Live caption HUD (hud_demo.py) with a real camera.", "Public hosting: Hugging Face Space files are prepared, not deployed."], 12), { objectName: "pending bullets", x: 8.55, y: 4.9, w: 4.0, h: 1.4, valign: "top" });
   s.addNotes("Launch locally with: python app.py. The screenshot is a genuine run, including a wrong prediction.");
 
   // 14. Evaluation results
@@ -504,7 +504,7 @@ async function main() {
     ["Generalisation", "1,997 of 2,000 test clips come from signers seen in training. Accuracy for new signers is not established."],
     ["Calibration", "Scores overstate accuracy (mean top-1 score 35.6% vs 18.9% correct), so they are estimates, not probabilities."],
     ["Power", "1.42 W per-process CPU energy estimate, dominated by MediaPipe; not total device power and not measured on a phone."],
-    ["Webcam", "Webcam recording in the app and the live HUD are implemented but not verified with a real camera."],
+    ["Testing scope", "Webcam use verified only in two recordings (Windows, Brave); the live HUD is untested with a camera; nothing measured on a phone."],
     ["Scope and platform", "Isolated words only, not continuous translation. Python web app and macOS tools; no Android or iOS app."],
   ];
   limits.forEach(([head, body], i) => {

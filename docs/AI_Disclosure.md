@@ -58,7 +58,7 @@ Every result reported in the README, the presentation, `results.csv` and the rep
 | Tests | `pytest` suite (see `docs/Deliverables_Status.md` for the latest count) |
 
 **Not verified:**
-- webcam recording (camera access was unavailable to the agent);
+- the live HUD with a real camera (webcam recording in the web app was later verified by the team in two screen recordings);
 - public hosting (not deployed);
 - any phone deployment.
 
@@ -98,6 +98,6 @@ The developer:
 - **Remains responsible for:**
   - the final submission;
   - team information;
-  - recording the demo video;
+  - the webcam recordings used in the demo video;
   - deploying the public demo;
   - confirming this disclosure against the competition rules.
