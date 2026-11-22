@@ -1,0 +1,48 @@
+{
+  "strategy": {
+    "fractions": {
+      "train": 0.5,
+      "val": 0.0,
+      "test": 1.0
+    },
+    "minimum_per_class": {
+      "train": 3,
+      "val": 1,
+      "test": 1
+    },
+    "method": "per split and class: floor(n * fraction) clamped to [minimum, n], signer round-robin, seeded shuffle",
+    "seed": 42
+  },
+  "train": {
+    "original": 14296,
+    "selected": 7190,
+    "classes": 2000,
+    "per_class_min": 3,
+    "per_class_median": 3.0,
+    "per_class_max": 15,
+    "signers_original": 118,
+    "signers_selected": 116
+  },
+  "val": {
+    "original": 3920,
+    "selected": 2000,
+    "classes": 2000,
+    "per_class_min": 1,
+    "per_class_median": 1.0,
+    "per_class_max": 1,
+    "signers_original": 110,
+    "signers_selected": 105
+  },
+  "test": {
+    "original": 2879,
+    "selected": 2879,
+    "classes": 2000,
+    "per_class_min": 1,
+    "per_class_median": 1.0,
+    "per_class_max": 5,
+    "signers_original": 106,
+    "signers_selected": 106
+  },
+  "total_selected": 12069,
+  "classes_below_minimum": []
+}

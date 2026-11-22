@@ -1,0 +1,16 @@
+{
+  "videos_selected": 50,
+  "succeeded": 50,
+  "failed": 0,
+  "failures": [],
+  "frames_processed": 2987,
+  "pose_detection_rate": 0.9993,
+  "left_hand_detection_rate": 0.456,
+  "right_hand_detection_rate": 0.6157,
+  "videos_without_any_hand": 0,
+  "mean_seconds_per_video_per_worker": 2.183,
+  "mean_ms_per_frame_per_worker": 36.54,
+  "wall_seconds_this_run": 26.22,
+  "peak_rss_mb_this_run": 1850.5,
+  "pending_at_start": 45
+}
