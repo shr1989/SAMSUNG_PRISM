@@ -1,0 +1,143 @@
+{
+  "int8_quantization": {
+    "int8_compute_ops": {
+      "MatMul": 1,
+      "Conv": 2,
+      "Gemm": 1
+    },
+    "fp32_compute_ops": {},
+    "fp32_other_ops": {
+      "Shape": 5,
+      "Abs": 1,
+      "Slice": 15,
+      "ReduceSum": 1,
+      "Concat": 8,
+      "Greater": 1,
+      "Sub": 6,
+      "Reshape": 4,
+      "Cast": 1,
+      "Unsqueeze": 13,
+      "Expand": 1,
+      "Gather": 2,
+      "Split": 4,
+      "ReduceL2": 2,
+      "ConstantOfShape": 1,
+      "Clip": 4,
+      "Squeeze": 10,
+      "Div": 5,
+      "Mul": 10,
+      "Neg": 4,
+      "Add": 5,
+      "LayerNormalization": 1,
+      "Transpose": 1,
+      "AveragePool": 1,
+      "ReduceMean": 1
+    },
+    "fully_int8_compute": true,
+    "quantize_linear_nodes": 73
+  },
+  "val": {
+    "torch_fp32": {
+      "loss": 4.8817524909973145,
+      "top1": 0.18649999797344208,
+      "top5": 0.4065000116825104,
+      "macro_precision": 0.12793333333333334,
+      "macro_recall": 0.1865,
+      "macro_f1": 0.14412142857142857
+    },
+    "onnx_fp32": {
+      "loss": 4.8817524909973145,
+      "top1": 0.18649999797344208,
+      "top5": 0.4065000116825104,
+      "macro_precision": 0.12793333333333334,
+      "macro_recall": 0.1865,
+      "macro_f1": 0.14412142857142857
+    },
+    "onnx_int8": {
+      "loss": 4.877501010894775,
+      "top1": 0.18299999833106995,
+      "top5": 0.39399999380111694,
+      "macro_precision": 0.12461666666666668,
+      "macro_recall": 0.183,
+      "macro_f1": 0.14056666666666667
+    },
+    "onnx_fp32_vs_torch": {
+      "max_abs_logit_diff": 1.33514404296875e-05,
+      "argmax_agreement": 1.0
+    },
+    "onnx_int8_vs_fp32": {
+      "max_abs_logit_diff": 10.119056701660156,
+      "argmax_agreement": 0.738
+    }
+  },
+  "test": {
+    "torch_fp32": {
+      "loss": 4.778647422790527,
+      "top1": 0.1889999955892563,
+      "top5": 0.4259999990463257,
+      "macro_precision": 0.1296720238095238,
+      "macro_recall": 0.189,
+      "macro_f1": 0.14593015873015872
+    },
+    "onnx_fp32": {
+      "loss": 4.778647422790527,
+      "top1": 0.1889999955892563,
+      "top5": 0.4259999990463257,
+      "macro_precision": 0.1296720238095238,
+      "macro_recall": 0.189,
+      "macro_f1": 0.14593015873015872
+    },
+    "onnx_int8": {
+      "loss": 4.778395175933838,
+      "top1": 0.18549999594688416,
+      "top5": 0.40950000286102295,
+      "macro_precision": 0.12382142857142857,
+      "macro_recall": 0.1855,
+      "macro_f1": 0.14047305194805193
+    },
+    "onnx_fp32_vs_torch": {
+      "max_abs_logit_diff": 1.1444091796875e-05,
+      "argmax_agreement": 1.0
+    },
+    "onnx_int8_vs_fp32": {
+      "max_abs_logit_diff": 17.87453269958496,
+      "argmax_agreement": 0.739
+    }
+  },
+  "int8_val_top1_drop_pp": 0.34999996423721313,
+  "qat_recommended": false,
+  "latency_batch1_ms": {
+    "onnx_fp32": {
+      "p50": 0.269271491561085,
+      "p95": 0.514581537572667,
+      "mean": 0.31431168143171817,
+      "warmup": 20,
+      "runs": 200
+    },
+    "onnx_int8": {
+      "p50": 0.2960209967568517,
+      "p95": 0.5494457669556141,
+      "mean": 0.32202436588704586,
+      "warmup": 20,
+      "runs": 200
+    }
+  },
+  "size_mb": {
+    "onnx_fp32": 3.327021598815918,
+    "onnx_int8": 0.923548698425293
+  },
+  "runtime": {
+    "onnxruntime": "1.32.0",
+    "provider": "CPUExecutionProvider",
+    "hardware": "Apple M4 MacBook Air (CPU)"
+  },
+  "input": {
+    "name": "keypoints",
+    "shape": [
+      "batch",
+      64,
+      75,
+      3
+    ]
+  }
+}
