@@ -1,0 +1,159 @@
+{
+  "method": "test clips replayed at 25 fps (real-time pacing) through StreamingRecognizer",
+  "model": "/Users/shraddhasidhan/hack/EchoGesture/models/exported/model_fp32.onnx",
+  "summary": {
+    "duration_s": 630.0392104580533,
+    "frames": 15751,
+    "frames_behind_realtime": 2,
+    "average_power_w": 1.4202594113834914,
+    "cpu_utilisation_percent_of_one_core": 50.06559024202206
+  },
+  "per_sample_landmarks_ms": {
+    "p50": 29.82193697243929,
+    "p95": 36.140600027283654,
+    "p99": 54.821457812795416,
+    "mean": 28.843752495410282,
+    "max": 89.9858750635758,
+    "n": 7458
+  },
+  "prediction_latency_ms": {
+    "landmarks_ms": {
+      "p50": 22.07395900040865,
+      "p95": 31.482141022570428,
+      "p99": 35.63506805803627,
+      "mean": 24.04506710476019,
+      "max": 36.20966605376452,
+      "n": 213
+    },
+    "preprocess_ms": {
+      "p50": 0.34704094287008047,
+      "p95": 0.6232004379853606,
+      "p99": 0.7687320187687872,
+      "mean": 0.40629814147179677,
+      "max": 0.8207920473068953,
+      "n": 213
+    },
+    "model_ms": {
+      "p50": 0.5525411106646061,
+      "p95": 1.0574247920885682,
+      "p99": 1.2024888163432477,
+      "mean": 0.6889514592279431,
+      "max": 1.509708003140986,
+      "n": 213
+    },
+    "end_to_end_ms": {
+      "p50": 23.50587595719844,
+      "p95": 32.21380782779306,
+      "p99": 36.39622495044023,
+      "mean": 25.14031670545993,
+      "max": 37.33941703103483,
+      "n": 213
+    }
+  },
+  "decision_delay_ms": 320.0,
+  "predictions": 213,
+  "streaming_top1": 0.18779342723004694,
+  "streaming_top5": 0.47417840375586856,
+  "landmarks_drift": {
+    "first_minute": {
+      "p50": 29.753583017736673,
+      "p95": 36.10804199706763,
+      "p99": 55.36670808214694,
+      "mean": 28.877352230342506,
+      "max": 58.20349999703467,
+      "n": 701
+    },
+    "last_minute": {
+      "p50": 29.802250035572797,
+      "p95": 36.39039376867004,
+      "p99": 53.85980849270709,
+      "mean": 28.795204303440354,
+      "max": 59.67058404348791,
+      "n": 704
+    },
+    "p50_drift_percent": 0.1635669149732788,
+    "p95_drift_percent": 0.7819636734258228
+  },
+  "end_to_end_drift": {
+    "first_minute": {
+      "p50": 23.34156248252839,
+      "p95": 31.738259177654985,
+      "p99": 35.28188463300466,
+      "mean": 24.453866737894714,
+      "max": 36.167790996842086,
+      "n": 20
+    },
+    "last_minute": {
+      "p50": 22.867291932925582,
+      "p95": 30.75378875946626,
+      "p99": 31.981881642714143,
+      "mean": 24.100890309041873,
+      "max": 32.307583023793995,
+      "n": 22
+    },
+    "p50_drift_percent": -2.0318714737190713,
+    "p95_drift_percent": -3.101841259402882
+  },
+  "per_minute": [
+    {
+      "minute": 1,
+      "avg_power_w": 1.3861965220792585,
+      "thermal": "no thermal warning",
+      "overruns_so_far": 0
+    },
+    {
+      "minute": 2,
+      "avg_power_w": 1.4445282156855523,
+      "thermal": "no thermal warning",
+      "overruns_so_far": 0
+    },
+    {
+      "minute": 3,
+      "avg_power_w": 1.4484717725468617,
+      "thermal": "no thermal warning",
+      "overruns_so_far": 0
+    },
+    {
+      "minute": 4,
+      "avg_power_w": 1.4223713880689723,
+      "thermal": "no thermal warning",
+      "overruns_so_far": 0
+    },
+    {
+      "minute": 5,
+      "avg_power_w": 1.4297271813583596,
+      "thermal": "no thermal warning",
+      "overruns_so_far": 0
+    },
+    {
+      "minute": 6,
+      "avg_power_w": 1.4156681622611051,
+      "thermal": "no thermal warning",
+      "overruns_so_far": 2
+    },
+    {
+      "minute": 7,
+      "avg_power_w": 1.435208147117184,
+      "thermal": "no thermal warning",
+      "overruns_so_far": 2
+    },
+    {
+      "minute": 8,
+      "avg_power_w": 1.396849444569624,
+      "thermal": "no thermal warning",
+      "overruns_so_far": 2
+    },
+    {
+      "minute": 9,
+      "avg_power_w": 1.4386832579408628,
+      "thermal": "no thermal warning",
+      "overruns_so_far": 2
+    },
+    {
+      "minute": 10,
+      "avg_power_w": 1.40924910703924,
+      "thermal": "no thermal warning",
+      "overruns_so_far": 2
+    }
+  ]
+}

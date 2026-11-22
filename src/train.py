@@ -3,7 +3,6 @@ import json
 import logging
 import os
 import random
-import subprocess
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -18,6 +17,7 @@ from torch import nn
 from src import config
 from src.augment import augment
 from src.dataset import SplitData, batches, load_split
+from src.energy import thermal_state
 from src.model import build_model, count_parameters, size_mb
 
 log = logging.getLogger("train")
@@ -147,19 +147,6 @@ def check_test_untouched(train: SplitData, val: SplitData) -> None:
     train_ids, val_ids = set(train.video_ids.tolist()), set(val.video_ids.tolist())
     if train_ids & val_ids or (train_ids | val_ids) & test_ids:
         raise ValueError("train/val/test video IDs overlap")
-
-
-def thermal_state() -> str:
-    try:
-        output = subprocess.run(
-            ["pmset", "-g", "therm"], capture_output=True, text=True, timeout=5
-        ).stdout
-    except (OSError, subprocess.TimeoutExpired):
-        return "unavailable"
-    warnings = [
-        line.strip() for line in output.splitlines() if "level" in line and "No " not in line
-    ]
-    return "; ".join(warnings) or "no thermal warning"
 
 
 def system_snapshot(device: torch.device) -> dict:

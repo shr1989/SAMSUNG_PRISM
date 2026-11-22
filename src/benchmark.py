@@ -13,10 +13,9 @@ log = logging.getLogger("benchmark")
 
 
 def percentiles(values: list[float]) -> dict:
-    return {
-        "p50": float(np.percentile(values, 50)),
-        "p95": float(np.percentile(values, 95)),
+    return {f"p{q}": float(np.percentile(values, q)) for q in (50, 95, 99)} | {
         "mean": float(np.mean(values)),
+        "n": len(values),
     }
 
 

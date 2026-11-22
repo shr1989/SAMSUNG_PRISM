@@ -26,8 +26,12 @@ class Recognizer:
 
     def __post_init__(self) -> None:
         self.cfg = PreprocessConfig.load(self.preprocess_config)
+        options = ort.SessionOptions()
+        # One thread: the model takes well under 1 ms, and idle-spinning worker threads cost power.
+        options.intra_op_num_threads = 1
+        options.inter_op_num_threads = 1
         self.session = ort.InferenceSession(
-            str(self.model_path), providers=["CPUExecutionProvider"]
+            str(self.model_path), options, providers=["CPUExecutionProvider"]
         )
         frames = self.session.get_inputs()[0].shape[1]
         if frames != self.cfg.num_frames:

@@ -1,0 +1,15 @@
+{
+  "videos": 400,
+  "method": "deployed path (video -> MediaPipe -> preprocess -> FP32 ONNX); occluded variant blacks out the dominant hand's region in 30% contiguous frames before MediaPipe",
+  "agreement_clean_vs_stored_top1": 1.0,
+  "stored_top1": 0.2,
+  "stored_top5": 0.4525,
+  "clean_top1": 0.2,
+  "clean_top5": 0.4525,
+  "occluded_top1": 0.1525,
+  "occluded_top5": 0.3725,
+  "occlusion_top1_drop_pp": 4.750000000000002,
+  "occlusion_top5_drop_pp": 8.000000000000002,
+  "clean_hand_detected_in_window": 0.8210646204285911,
+  "occluded_hand_detected_in_window": 0.06335030941280942
+}
