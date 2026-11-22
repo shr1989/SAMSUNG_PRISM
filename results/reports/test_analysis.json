@@ -1,0 +1,17 @@
+{
+  "test_top1_ci95": [
+    0.1725,
+    0.206
+  ],
+  "test_top5_ci95": [
+    0.4054875,
+    0.4485124999999999
+  ],
+  "signer_breakdown": {
+    "clips_by_seen_signers": 1997,
+    "unseen_signer_clips": 3,
+    "same_signer_same_word_in_train": 88,
+    "accuracy_same_signer_same_word": 0.4659090909090909,
+    "accuracy_other": 0.17625523012552302
+  }
+}
