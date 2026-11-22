@@ -49,6 +49,33 @@ HOLISTIC_MODEL_COMPLEXITY = 1
 HOLISTIC_MIN_DETECTION_CONFIDENCE = 0.5
 HOLISTIC_MIN_TRACKING_CONFIDENCE = 0.5
 
+# Stride-2 clips have median 30 frames (p95 46); 32 avoids fabricating motion.
+NUM_FRAMES = 32
+MAX_FILL_GAP = 4
+CLIP_VALUE = 6.0
+MIN_SHOULDER_WIDTH = 0.02
+# Hips, legs and feet (23-32) are mostly off-frame in WLASL and carry no sign information.
+DROPPED_POSE = tuple(range(23, 33))
+POSE_MIRROR_PAIRS = (
+    (1, 4),
+    (2, 5),
+    (3, 6),
+    (7, 8),
+    (9, 10),
+    (11, 12),
+    (13, 14),
+    (15, 16),
+    (17, 18),
+    (19, 20),
+    (21, 22),
+    (23, 24),
+    (25, 26),
+    (27, 28),
+    (29, 30),
+    (31, 32),
+)
+PREPROCESS_CONFIG_JSON = PROCESSED_DIR / "preprocess_config.json"
+
 
 def ensure_dirs() -> None:
     for path in (
