@@ -1,0 +1,36 @@
+{
+  "arch": "tcnn",
+  "device": "mps",
+  "mixed_precision": "off",
+  "parameters": 866960,
+  "model_size_mb": 3.3145294189453125,
+  "train_samples": 6000,
+  "val_samples": 2000,
+  "epochs_completed": 88,
+  "best_epoch": 67,
+  "best_val": {
+    "loss": 5.0823655128479,
+    "top1": 0.18150000274181366,
+    "top5": 0.3935000002384186,
+    "macro_precision": 0.12523869047619046,
+    "macro_recall": 0.1815,
+    "macro_f1": 0.14037301587301587
+  },
+  "final_train_loss": 1.8704308598836263,
+  "train_loss_at_best": 2.0756090723673504,
+  "mean_epoch_seconds": 2.679843479696005,
+  "training_minutes": 3.973587045834089,
+  "peak_memory_mb": 1452.828125,
+  "config": {
+    "arch": "tcnn",
+    "epochs": 150,
+    "batch_size": 64,
+    "lr": 0.002,
+    "weight_decay": 0.05,
+    "label_smoothing": 0.1,
+    "patience": 20,
+    "seed": 42,
+    "time_budget_min": 600.0,
+    "amp": "auto"
+  }
+}
