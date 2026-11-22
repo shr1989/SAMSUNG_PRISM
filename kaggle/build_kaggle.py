@@ -24,6 +24,7 @@ PACKAGE_FILES = [
     "src/export_quantize.py",
     "src/inference.py",
     "src/benchmark.py",
+    "src/energy.py",
     "src/validate_keypoints.py",
     "main.py",
     "kaggle/kaggle_checks.py",
@@ -691,6 +692,7 @@ batch 64, up to 150 epochs, early stopping on validation macro F1. CUDA mixed pr
 (bfloat16 where native, else float16 with loss scaling). `last.pt` is saved every epoch and
 training resumes from it automatically; `best.pt` holds the best validation macro F1.
 """),
+        module("src/energy.py"),
         module("src/train.py"),
         code(TRAIN),
         md("## 11. Validation"),
