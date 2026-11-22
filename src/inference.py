@@ -21,13 +21,19 @@ def softmax(logits: np.ndarray) -> np.ndarray:
 @dataclass
 class Recognizer:
     model_path: Path = DEFAULT_MODEL
+    preprocess_config: Path = config.PREPROCESS_CONFIG_JSON
     top_k: int = 5
 
     def __post_init__(self) -> None:
-        self.cfg = PreprocessConfig.load(config.PREPROCESS_CONFIG_JSON)
+        self.cfg = PreprocessConfig.load(self.preprocess_config)
         self.session = ort.InferenceSession(
             str(self.model_path), providers=["CPUExecutionProvider"]
         )
+        frames = self.session.get_inputs()[0].shape[1]
+        if frames != self.cfg.num_frames:
+            raise ValueError(
+                f"model expects {frames} frames but preprocessing produces {self.cfg.num_frames}"
+            )
         manifest = pd.read_csv(config.MANIFEST_CSV, usecols=["label", "gloss"])
         self.glosses = manifest.drop_duplicates("label").set_index("label")["gloss"].to_dict()
 
@@ -49,20 +55,23 @@ class Recognizer:
         }
         return predictions, timing
 
-    def predict_video(self, video_path: Path) -> dict:
+    def extract(self, video_path: Path) -> tuple[np.ndarray, float]:
         began = time.perf_counter()
         frames = _frame_count(video_path)
         with create_holistic() as holistic:
             keypoints = extract_video(holistic, video_path, 0, frames, self.cfg.frame_stride)
-        extracted = time.perf_counter()
+        return keypoints, 1000 * (time.perf_counter() - began)
+
+    def predict_video(self, video_path: Path) -> dict:
+        keypoints, landmarks_ms = self.extract(video_path)
         predictions, timing = self.classify(keypoints)
         return {
             "word": predictions[0]["word"],
             "confidence": predictions[0]["confidence"],
             "top5": predictions,
-            "latency_ms": {"landmarks_ms": 1000 * (extracted - began)}
+            "latency_ms": {"landmarks_ms": landmarks_ms}
             | timing
-            | {"end_to_end_ms": 1000 * (time.perf_counter() - began)},
+            | {"end_to_end_ms": landmarks_ms + sum(timing.values())},
             "frames_used": int(len(keypoints)),
         }
 

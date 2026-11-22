@@ -1,25 +1,36 @@
+import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+# Environment overrides let the same code run on Kaggle (read-only input, writable working dir).
+WORK_DIR = Path(os.environ.get("ECHOGESTURE_WORK_DIR", ROOT))
 
-DATA_DIR = ROOT / "data"
-RAW_DIR = DATA_DIR / "raw" / "wlasl-complete"
+DATA_DIR = WORK_DIR / "data"
+RAW_DIR = Path(os.environ.get("ECHOGESTURE_RAW_DIR", DATA_DIR / "raw" / "wlasl-complete"))
 VIDEO_DIR = RAW_DIR / "videos"
 MASTER_JSON = RAW_DIR / "WLASL_v0.3.json"
 NSLT_JSON = RAW_DIR / "nslt_2000.json"
 CLASS_LIST = RAW_DIR / "wlasl_class_list.txt"
-# Stride-2 arrays (12.5 fps); full-frame Phase 2 arrays remain in data/keypoints/.
-KEYPOINT_DIR = DATA_DIR / "keypoints" / "stride2"
+# Every FRAME_STRIDE-th frame is extracted; stride 2 (12.5 fps) matched full-frame detection.
+FRAME_STRIDE = int(os.environ.get("ECHOGESTURE_FRAME_STRIDE", 2))
+KEYPOINT_DIR = Path(
+    os.environ.get("ECHOGESTURE_KEYPOINT_DIR", DATA_DIR / "keypoints" / f"stride{FRAME_STRIDE}")
+)
 PROCESSED_DIR = DATA_DIR / "processed"
 MANIFEST_CSV = PROCESSED_DIR / "manifest.csv"
 REDUCED_MANIFEST_CSV = PROCESSED_DIR / "reduced_manifest.csv"
 REDUCED_EXCLUDED_CSV = PROCESSED_DIR / "excluded_samples.csv"
+TRAINING_SUBSET = os.environ.get("ECHOGESTURE_SUBSET", "full")
+if TRAINING_SUBSET not in ("full", "reduced"):
+    raise ValueError(f"ECHOGESTURE_SUBSET must be 'full' or 'reduced', got {TRAINING_SUBSET!r}")
+TRAINING_MANIFEST_CSV = MANIFEST_CSV if TRAINING_SUBSET == "full" else REDUCED_MANIFEST_CSV
 
-MODEL_DIR = ROOT / "models"
+MODEL_DIR = WORK_DIR / "models"
 CHECKPOINT_DIR = MODEL_DIR / "checkpoints"
 EXPORT_DIR = MODEL_DIR / "exported"
+DEFAULT_ARCH = os.environ.get("ECHOGESTURE_ARCH", "tcnn")
 
-RESULTS_DIR = ROOT / "results"
+RESULTS_DIR = WORK_DIR / "results"
 PLOT_DIR = RESULTS_DIR / "plots"
 REPORT_DIR = RESULTS_DIR / "reports"
 RESULTS_CSV = RESULTS_DIR / "results.csv"
@@ -44,14 +55,14 @@ RIGHT_WRIST = 16
 LANDMARK_ORDER = ("pose", "left_hand", "right_hand")
 
 EXTRACTION_STATUS_CSV = KEYPOINT_DIR / "extraction_status.csv"
-FRAME_STRIDE = 2
 HOLISTIC_MODEL_COMPLEXITY = 1
 HOLISTIC_MIN_DETECTION_CONFIDENCE = 0.5
 HOLISTIC_MIN_TRACKING_CONFIDENCE = 0.5
 
-# Stride-2 clips have median 30 frames (p95 46); 32 avoids fabricating motion.
-NUM_FRAMES = 32
-MAX_FILL_GAP = 4
+# Baseline 64 frames per the original specification; 32 was an unvalidated experiment.
+NUM_FRAMES = int(os.environ.get("ECHOGESTURE_NUM_FRAMES", 64))
+# Interpolate gaps up to 0.32 s (8 frames at 25 fps).
+MAX_FILL_GAP = 8 // FRAME_STRIDE
 CLIP_VALUE = 6.0
 MIN_SHOULDER_WIDTH = 0.02
 # Hips, legs and feet (23-32) are mostly off-frame in WLASL and carry no sign information.

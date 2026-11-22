@@ -1,6 +1,6 @@
 # EchoGesture
 
-Isolated ASL word recognition on WLASL-2000 (2,000 classes): MediaPipe Holistic keypoints -> CNN-GRU -> ONNX Runtime on-device.
+Isolated ASL word recognition on WLASL-2000 (2,000 classes): MediaPipe Holistic keypoints -> 64 x 576 features -> pure temporal 1D-CNN (`tcnn`) -> ONNX / INT8 ONNX on-device. GRU, LSTM, Transformers and 3D CNNs are not allowed in the final model.
 
 ## Pipeline and commands
 
@@ -12,16 +12,20 @@ Run everything from the project root with `.venv/bin/python` (Python 3.11).
 | Select subset | `python -m src.select_subset` | `data/processed/reduced_manifest.csv`, `excluded_samples.csv` |
 | Extract keypoints | `python -m src.extract_keypoints --workers 4` | `data/keypoints/stride2/*.npy`, `extraction_status.csv` |
 | Preprocess | `python -m src.preprocess` | `data/processed/{train,val,test}.npz`, `preprocess_config.json` |
-| Train | `python -m src.train --arch cnn_gru` (`--resume` to continue) | `models/checkpoints/<arch>/{best,last}.pt` |
+| Train | `python -m src.train` (`--resume` to continue) | `models/checkpoints/tcnn/{best,last}.pt` |
 | Evaluate | `python -m src.evaluate` | `results/results.csv`, `results/reports/evaluation_report.json` |
 | Export | `python -m src.export_quantize` | `models/exported/model_{fp32,int8}.onnx` |
 | Predict | `python main.py <video.mp4>` | JSON |
+| Kaggle build | `python kaggle/build_kaggle.py` | `EchoGesture_Kaggle.ipynb`, `EchoGesture_Kaggle_Package.zip` |
 
 ## Data contracts
 
 - Keypoint arrays: `(T, 75, 3)` float32. Pose 0-32, left hand 33-53, right hand 54-74. A missing group is all-NaN. Hand identity is anatomical on unmirrored video.
 - Extraction uses every 2nd frame (12.5 fps, `FRAME_STRIDE=2`). The full-frame Phase 2 arrays in `data/keypoints/*.npy` are kept but unused.
-- Model input: `(B, 32, 75, 3)`. Shoulder-centred, shoulder-width-scaled, short gaps interpolated, legs dropped, missing = exactly 0. Features (314) and the train-fitted standardisation are inside the model and the ONNX graph.
+- Model input: `(B, 64, 75, 3)`. Shoulder-centred, shoulder-width-scaled, short gaps interpolated, legs dropped, missing = exactly 0. The 576 features (225 body + 126 upright handshape + 225 velocity) and the train-fitted standardisation are inside the model and the ONNX graph.
+- `src/model_experimental.py` (32-frame, 314-feature CNN and CNN-GRU) is a local experiment only; it is excluded from the Kaggle package.
+- Training defaults to the full 21,095-video manifest (`ECHOGESTURE_SUBSET=full`); the 12,069-video reduced manifest is opt-in.
+- After editing any module, rerun `python kaggle/build_kaggle.py` so the notebook and package stay identical to `src/`.
 - `src/preprocess.py::preprocess` is the single transform for training and inference.
 
 ## Rules

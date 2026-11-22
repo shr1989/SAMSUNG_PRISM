@@ -14,6 +14,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import psutil
+from tqdm import tqdm
 
 from src import config
 
@@ -205,28 +206,44 @@ def run(
     status_path: Path,
     model_complexity: int = config.HOLISTIC_MODEL_COMPLEXITY,
     frame_stride: int = config.FRAME_STRIDE,
+    max_minutes: float | None = None,
 ) -> RunStats:
     peak_mb = process_memory_mb()
-    frames = 0
+    frames = done = 0
+    began = time.perf_counter()
     psutil.cpu_percent(None)
     new_file = not status_path.exists()
     with (
         status_path.open("a", newline="") as handle,
         Pool(workers, _init_worker, (model_complexity, frame_stride)) as pool,
+        tqdm(total=len(tasks), unit="video", mininterval=30, ascii=True) as progress,
     ):
         writer = csv.DictWriter(handle, fieldnames=STATUS_FIELDS)
         if new_file:
             writer.writeheader()
         for done, result in enumerate(pool.imap_unordered(_process, tasks), start=1):
+            progress.update()
             writer.writerow(asdict(result))
             handle.flush()
             frames += result.frames
             peak_mb = max(peak_mb, process_memory_mb())
             if result.status == "failed":
                 log.warning("failed %s: %s", result.video_id, result.error)
-            if done % 50 == 0 or done == len(tasks):
-                log.info("%d/%d videos, peak RSS %.0f MB", done, len(tasks), peak_mb)
-    return RunStats(peak_mb, psutil.cpu_percent(None), frames, len(tasks))
+            if max_minutes and (time.perf_counter() - began) / 60 > max_minutes:
+                # Leaving the Pool context terminates in-flight workers; resume picks them up.
+                log.info("time limit of %.0f min reached after %d videos", max_minutes, done)
+                break
+            if done % 500 == 0 or done == len(tasks):
+                rate = 60 * done / (time.perf_counter() - began)
+                log.info(
+                    "%d/%d videos, %.1f videos/min, ETA %.1f min, peak RSS %.0f MB",
+                    done,
+                    len(tasks),
+                    rate,
+                    (len(tasks) - done) / rate,
+                    peak_mb,
+                )
+    return RunStats(peak_mb, psutil.cpu_percent(None), frames, done)
 
 
 def summarise(status: pd.DataFrame, video_ids: set[str], stats: RunStats, wall: float) -> dict:
@@ -270,11 +287,12 @@ def main() -> None:
     parser.add_argument("--out-dir", type=Path, default=config.KEYPOINT_DIR)
     parser.add_argument("--retry-failed", action="store_true")
     parser.add_argument("--report", type=Path, default=config.REPORT_DIR / "extraction_report.json")
-    parser.add_argument("--manifest", type=Path, default=config.REDUCED_MANIFEST_CSV)
+    parser.add_argument("--manifest", type=Path, default=config.TRAINING_MANIFEST_CSV)
     parser.add_argument(
         "--model-complexity", type=int, choices=(0, 1, 2), default=config.HOLISTIC_MODEL_COMPLEXITY
     )
     parser.add_argument("--frame-stride", type=int, default=config.FRAME_STRIDE)
+    parser.add_argument("--max-minutes", type=float)
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     os.environ.setdefault("GLOG_minloglevel", "2")
@@ -290,7 +308,14 @@ def main() -> None:
 
     began = time.perf_counter()
     stats = (
-        run(tasks, args.workers, status_path, args.model_complexity, args.frame_stride)
+        run(
+            tasks,
+            args.workers,
+            status_path,
+            args.model_complexity,
+            args.frame_stride,
+            args.max_minutes,
+        )
         if tasks
         else RunStats(process_memory_mb(), 0.0, 0, 0)
     )

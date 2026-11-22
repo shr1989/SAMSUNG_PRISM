@@ -117,7 +117,7 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     config.ensure_dirs()
 
-    manifest = pd.read_csv(config.REDUCED_MANIFEST_CSV, dtype={"video_id": str})
+    manifest = pd.read_csv(config.TRAINING_MANIFEST_CSV, dtype={"video_id": str})
     status = pd.read_csv(config.EXTRACTION_STATUS_CSV, dtype={"video_id": str})
     status = status.drop_duplicates("video_id", keep="last")
     ok_ids = set(status.loc[status["status"] == "ok", "video_id"])

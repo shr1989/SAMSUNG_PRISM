@@ -1,0 +1,6 @@
+onnx==1.22.0
+onnxruntime==1.32.0
+psutil
+scikit-learn
+matplotlib
+pandas

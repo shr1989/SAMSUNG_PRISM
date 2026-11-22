@@ -17,26 +17,54 @@ from torch import nn
 from src import config
 from src.augment import augment
 from src.dataset import SplitData, batches, check_disjoint, load_split
-from src.model import build_model, count_parameters, frame_features
+from src.model import build_model, count_parameters, size_mb
 
 log = logging.getLogger("train")
 
 
 @dataclass
 class TrainConfig:
-    arch: str = "cnn_gru"
-    epochs: int = 80
+    arch: str = config.DEFAULT_ARCH
+    epochs: int = 150
     batch_size: int = 64
     lr: float = 2e-3
     weight_decay: float = 0.05
     label_smoothing: float = 0.1
     patience: int = 20
     seed: int = config.SEED
-    time_budget_min: float = 30.0
+    time_budget_min: float = 600.0
+    amp: str = "auto"
+
+
+def _usable(device: str) -> bool:
+    # Some CUDA builds load but lack kernels for older GPUs; run a real op to confirm.
+    try:
+        (torch.ones(2, device=device) * 2).sum().item()
+        return True
+    except (RuntimeError, AssertionError):
+        return False
 
 
 def select_device() -> torch.device:
-    return torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    requested = os.environ.get("ECHOGESTURE_DEVICE")
+    if requested:
+        return torch.device(requested)
+    if torch.cuda.is_available() and _usable("cuda"):
+        return torch.device("cuda")
+    if torch.backends.mps.is_available() and _usable("mps"):
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
+def amp_dtype(device: torch.device, mode: str) -> torch.dtype | None:
+    # Mixed precision only on CUDA: bfloat16 where supported, otherwise float16 with loss scaling.
+    if mode == "off" or device.type != "cuda":
+        return None
+    try:
+        native_bf16 = torch.cuda.is_bf16_supported(including_emulation=False)
+    except TypeError:
+        native_bf16 = torch.cuda.is_bf16_supported()
+    return torch.bfloat16 if native_bf16 else torch.float16
 
 
 def seed_everything(seed: int) -> None:
@@ -46,11 +74,13 @@ def seed_everything(seed: int) -> None:
 
 
 @torch.no_grad()
-def feature_stats(data: SplitData, batch_size: int = 512) -> tuple[torch.Tensor, torch.Tensor]:
-    # Fitted on clean training data only.
+def feature_stats(
+    model: nn.Module, data: SplitData, batch_size: int = 512
+) -> tuple[torch.Tensor, torch.Tensor]:
+    # Fitted on clean (unaugmented) training data only.
     total, total_sq, count = 0.0, 0.0, 0
     for x, _ in batches(data, batch_size, shuffle=False):
-        f = frame_features(x).flatten(0, 1).cpu().double()
+        f = model.features(x).flatten(0, 1).cpu().double()
         total = total + f.sum(0)
         total_sq = total_sq + (f * f).sum(0)
         count += f.shape[0]
@@ -94,6 +124,8 @@ def memory_mb(device: torch.device) -> float:
     rss = psutil.Process().memory_info().rss / 2**20
     if device.type == "mps":
         rss = max(rss, torch.mps.driver_allocated_memory() / 2**20)
+    if device.type == "cuda":
+        rss = max(rss, torch.cuda.max_memory_allocated() / 2**20)
     return rss
 
 
@@ -105,7 +137,9 @@ def train(cfg: TrainConfig, run_dir: Path, resume: bool) -> dict:
     train_data, val_data = train_data.to(device), val_data.to(device)
 
     model = build_model(cfg.arch).to(device)
-    model.set_feature_stats(*[t.to(device) for t in feature_stats(train_data)])
+    model.set_feature_stats(*[t.to(device) for t in feature_stats(model, train_data)])
+    dtype = amp_dtype(device, cfg.amp)
+    scaler = torch.amp.GradScaler("cuda", enabled=dtype == torch.float16)
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
     steps_per_epoch = -(-len(train_data) // cfg.batch_size)
     scheduler = torch.optim.lr_scheduler.OneCycleLR(
@@ -118,7 +152,15 @@ def train(cfg: TrainConfig, run_dir: Path, resume: bool) -> dict:
     last_path, best_path = run_dir / "last.pt", run_dir / "best.pt"
     if resume and last_path.exists():
         state = torch.load(last_path, map_location=device, weights_only=False)
+        saved = state["train_config"]
+        if (saved["epochs"], saved["batch_size"], saved["arch"]) != (
+            cfg.epochs,
+            cfg.batch_size,
+            cfg.arch,
+        ):
+            raise ValueError(f"resume needs the same epochs/batch_size/arch as {saved}")
         model.load_state_dict(state["model"])
+        scaler.load_state_dict(state["scaler"])
         optimizer.load_state_dict(state["optimizer"])
         scheduler.load_state_dict(state["scheduler"])
         generator.set_state(state["generator"])
@@ -128,9 +170,11 @@ def train(cfg: TrainConfig, run_dir: Path, resume: bool) -> dict:
         log.info("resumed at epoch %d", start_epoch)
 
     log.info(
-        "device=%s params=%d train=%d val=%d",
+        "device=%s amp=%s params=%d size=%.2fMB train=%d val=%d",
         device,
+        dtype,
         count_parameters(model),
+        size_mb(model),
         len(train_data),
         len(val_data),
     )
@@ -140,11 +184,19 @@ def train(cfg: TrainConfig, run_dir: Path, resume: bool) -> dict:
         model.train()
         epoch_began, running, seen = time.perf_counter(), 0.0, 0
         for x, y in batches(train_data, cfg.batch_size, True, generator):
-            loss = criterion(model(augment(x, generator)), y)
+            with torch.autocast(
+                device.type, dtype=dtype or torch.float32, enabled=dtype is not None
+            ):
+                logits = model(augment(x, generator))
+            loss = criterion(logits.float(), y)
+            if not torch.isfinite(loss):
+                raise FloatingPointError(f"non-finite loss at epoch {epoch}")
             optimizer.zero_grad(set_to_none=True)
-            loss.backward()
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
             nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
             scheduler.step()
             running += loss.item() * len(y)
             seen += len(y)
@@ -185,6 +237,8 @@ def train(cfg: TrainConfig, run_dir: Path, resume: bool) -> dict:
                 "model": model.state_dict(),
                 "optimizer": optimizer.state_dict(),
                 "scheduler": scheduler.state_dict(),
+                "scaler": scaler.state_dict(),
+                "train_config": asdict(cfg),
                 "generator": generator.get_state(),
                 "torch_rng": torch.get_rng_state(),
                 "history": history,
@@ -207,7 +261,9 @@ def train(cfg: TrainConfig, run_dir: Path, resume: bool) -> dict:
     return {
         "arch": cfg.arch,
         "device": str(device),
+        "mixed_precision": str(dtype) if dtype else "off",
         "parameters": count_parameters(model),
+        "model_size_mb": size_mb(model),
         "train_samples": len(train_data),
         "val_samples": len(val_data),
         "epochs_completed": len(history),

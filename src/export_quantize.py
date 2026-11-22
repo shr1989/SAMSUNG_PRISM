@@ -26,20 +26,24 @@ log = logging.getLogger("export_quantize")
 
 INPUT_NAME, OUTPUT_NAME = "keypoints", "logits"
 CALIBRATION_CLIPS = 300
+QAT_THRESHOLD_PP = 2.0
+COMPUTE_OPS = {"Conv", "MatMul", "Gemm", "GRU", "LSTM"}
+QDQ_OPS = {"QuantizeLinear", "DequantizeLinear"}
 
 
 def export_onnx(model: torch.nn.Module, path: Path) -> None:
     dummy = torch.zeros(1, config.NUM_FRAMES, config.NUM_LANDMARKS, config.COORDS)
-    torch.onnx.export(
-        model.cpu().eval(),
-        (dummy,),
-        str(path),
-        input_names=[INPUT_NAME],
-        output_names=[OUTPUT_NAME],
-        opset_version=17,
-        dynamic_axes={INPUT_NAME: {0: "batch"}, OUTPUT_NAME: {0: "batch"}},
-        dynamo=False,
-    )
+    kwargs = {
+        "input_names": [INPUT_NAME],
+        "output_names": [OUTPUT_NAME],
+        "opset_version": 17,
+        "dynamic_axes": {INPUT_NAME: {0: "batch"}, OUTPUT_NAME: {0: "batch"}},
+    }
+    try:
+        torch.onnx.export(model.cpu().eval(), (dummy,), str(path), dynamo=False, **kwargs)
+    except TypeError:
+        # PyTorch < 2.5 has no dynamo argument and always uses the TorchScript exporter.
+        torch.onnx.export(model.cpu().eval(), (dummy,), str(path), **kwargs)
     onnx.checker.check_model(onnx.load(str(path)))
 
 
@@ -94,11 +98,25 @@ def quantize_int8(fp32_path: Path, int8_path: Path, calibration: np.ndarray) -> 
         per_channel=True,
     )
     prepared.unlink()
-    ops = Counter(node.op_type for node in onnx.load(str(int8_path)).graph.node)
+    return operator_precision(onnx.load(str(int8_path)))
+
+
+def operator_precision(model: onnx.ModelProto) -> dict:
+    # A compute node runs in INT8 only when its weight input is produced by DequantizeLinear.
+    nodes = model.graph.node
+    dequantized = {out for n in nodes if n.op_type == "DequantizeLinear" for out in n.output}
+    int8, fp32 = Counter(), Counter()
+    for node in nodes:
+        if node.op_type in COMPUTE_OPS:
+            weight = node.input[1] if len(node.input) > 1 else ""
+            (int8 if weight in dequantized else fp32)[node.op_type] += 1
+    other = Counter(n.op_type for n in nodes if n.op_type not in COMPUTE_OPS | QDQ_OPS)
     return {
-        "quantize_linear_nodes": ops["QuantizeLinear"],
-        "dequantize_linear_nodes": ops["DequantizeLinear"],
-        "fp32_gru_nodes": ops["GRU"],
+        "int8_compute_ops": dict(int8),
+        "fp32_compute_ops": dict(fp32),
+        "fp32_other_ops": dict(other),
+        "fully_int8_compute": not fp32,
+        "quantize_linear_nodes": sum(n.op_type == "QuantizeLinear" for n in nodes),
     }
 
 
@@ -112,7 +130,7 @@ def compare(reference: np.ndarray, candidate: np.ndarray) -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--checkpoint", type=Path, default=config.CHECKPOINT_DIR / "cnn_gru" / "best.pt"
+        "--checkpoint", type=Path, default=config.CHECKPOINT_DIR / config.DEFAULT_ARCH / "best.pt"
     )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -149,6 +167,9 @@ def main() -> None:
             "onnx_fp32_vs_torch": compare(torch_logits, fp32_logits),
             "onnx_int8_vs_fp32": compare(fp32_logits, int8_logits),
         }
+    drop_pp = 100 * (report["val"]["onnx_fp32"]["top1"] - report["val"]["onnx_int8"]["top1"])
+    report["int8_val_top1_drop_pp"] = drop_pp
+    report["qat_recommended"] = drop_pp > QAT_THRESHOLD_PP
     report["latency_batch1_ms"] = {
         "onnx_fp32": latency_ms(fp32, sample),
         "onnx_int8": latency_ms(int8, sample),

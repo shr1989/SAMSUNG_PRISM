@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 
 from src import config
 from src.augment import occlude, rotate
@@ -65,6 +65,13 @@ def top_confusions(logits: torch.Tensor, labels: torch.Tensor, glosses: dict) ->
     return counts
 
 
+def save_confusion(logits: torch.Tensor, labels: torch.Tensor, path: Path) -> None:
+    matrix = confusion_matrix(
+        labels.cpu().numpy(), logits.argmax(1).numpy(), labels=np.arange(config.NUM_CLASSES)
+    )
+    np.savez_compressed(path, confusion=matrix.astype(np.int32))
+
+
 def variant(data: SplitData, features: torch.Tensor) -> SplitData:
     return SplitData(features, data.labels, data.video_ids)
 
@@ -72,7 +79,7 @@ def variant(data: SplitData, features: torch.Tensor) -> SplitData:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--checkpoint", type=Path, default=config.CHECKPOINT_DIR / "cnn_gru" / "best.pt"
+        "--checkpoint", type=Path, default=config.CHECKPOINT_DIR / config.DEFAULT_ARCH / "best.pt"
     )
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -81,7 +88,7 @@ def main() -> None:
     manifest = pd.read_csv(config.MANIFEST_CSV, dtype={"video_id": str})
     glosses = manifest.drop_duplicates("label").set_index("label")["gloss"].to_dict()
 
-    rows, report = [], {"checkpoint": str(args.checkpoint.relative_to(config.ROOT))}
+    rows, report = [], {"checkpoint": str(args.checkpoint)}
     for split in ("val", "test"):
         data = load_split(split).to(device)
         batch = len(data)
@@ -110,6 +117,7 @@ def main() -> None:
                 per_class_table(logits, data.labels, glosses).to_csv(
                     config.REPORT_DIR / "test_per_class.csv", index=False
                 )
+                save_confusion(logits, data.labels, config.REPORT_DIR / "test_confusion.npz")
                 top_confusions(logits, data.labels, glosses).head(200).to_csv(
                     config.REPORT_DIR / "test_top_confusions.csv", index=False
                 )

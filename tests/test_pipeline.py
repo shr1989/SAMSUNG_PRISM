@@ -5,7 +5,8 @@ import torch
 from src import config
 from src.augment import MIRROR_INDEX, augment, mirror, occlude, rotate
 from src.dataset import SplitData, batches, check_disjoint
-from src.model import NUM_FEATURES, build_model, frame_features
+from src.model import NUM_FEATURES_576, build_model, features_576, hand_upright, size_mb
+from src.model_experimental import EXPERIMENTS, NUM_FEATURES_314, features_314
 from src.preprocess import PreprocessConfig, fill_missing, normalise, preprocess, resample
 
 SHAPE = (config.NUM_LANDMARKS, config.COORDS)
@@ -136,17 +137,51 @@ def test_occlude_hides_expected_fraction():
     assert (hidden == round(0.3 * config.NUM_FRAMES) * config.NUM_HAND).all()
 
 
-def test_frame_features_dimension_and_missing_hand():
+def test_features_576_composition_and_missing_hand():
     x = batch_tensor()
-    f = frame_features(x)
-    assert f.shape == (4, config.NUM_FRAMES, NUM_FEATURES)
+    f = features_576(x)
+    assert NUM_FEATURES_576 == 225 + 126 + 225 == 576
+    assert f.shape == (4, config.NUM_FRAMES, 576) and torch.isfinite(f).all()
+    torch.testing.assert_close(f[..., :225], x.flatten(2))
+    assert (f[:, :10, 225:288] == 0).all()
+    left_velocity = f[:, :11, 351:576].view(4, 11, 75, 3)[:, :, config.LEFT_HAND_SLICE]
+    assert (left_velocity == 0).all()
+
+
+def test_hand_upright_aligns_middle_knuckle_upwards():
+    hand = torch.zeros(1, 1, config.NUM_HAND, 3)
+    hand[0, 0, 9] = torch.tensor([0.3, 0.4, 0.0])
+    hand[0, 0, 5] = torch.tensor([0.6, 0.8, 0.0])
+    out = hand_upright(hand).view(config.NUM_HAND, 3)
+    torch.testing.assert_close(out[9], torch.tensor([0.0, -1.0, 0.0]))
+    torch.testing.assert_close(out[5], torch.tensor([0.0, -2.0, 0.0]))
+
+
+def test_hand_upright_missing_hand_is_zero():
+    assert (hand_upright(torch.zeros(2, 3, config.NUM_HAND, 3)) == 0).all()
+
+
+def test_features_314_dimension_and_flags():
+    x = batch_tensor()
+    f = features_314(x)
+    assert f.shape == (4, config.NUM_FRAMES, NUM_FEATURES_314)
     assert (f[:, :10, -2] == 0).all() and (f[:, 10:, -2] == 1).all()
-    assert torch.isfinite(f).all()
 
 
-@pytest.mark.parametrize("arch", ["cnn_gru", "cnn"])
+def test_tcnn_matches_specification():
+    model = build_model("tcnn").eval()
+    assert model.projection[0].in_features == 576 and model.projection[0].out_features == 192
+    convs = [m for m in model.modules() if isinstance(m, torch.nn.Conv1d)]
+    assert [c.kernel_size[0] for c in convs] == [5, 5] and [c.stride[0] for c in convs] == [1, 2]
+    assert not any(isinstance(m, (torch.nn.GRU, torch.nn.LSTM)) for m in model.modules())
+    assert size_mb(model) < 20
+    with pytest.raises(ValueError):
+        build_model("cnn_gru")
+
+
+@pytest.mark.parametrize("arch", ["tcnn", "cnn", "cnn_gru"])
 def test_model_output_shape(arch):
-    model = build_model(arch).eval()
+    model = (EXPERIMENTS[arch]() if arch in EXPERIMENTS else build_model(arch)).eval()
     out = model(torch.randn(64, config.NUM_FRAMES, *SHAPE))
     assert out.shape == (64, config.NUM_CLASSES)
 
